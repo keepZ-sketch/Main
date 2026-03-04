@@ -55,8 +55,8 @@ gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
 frame.Parent = gui
-frame.Size = UDim2.new(0,140,0,40) -- LEBIH KECIL
-frame.Position = UDim2.new(0,20,0,200)
+frame.Size = UDim2.new(0,150,0,20) -- LEBIH KECIL
+frame.Position = UDim2.new(0,50,0,200)
 frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 frame.BorderSizePixel = 0
 frame.Active = true
@@ -90,3 +90,4 @@ button.MouseButton1Click:Connect(function()
         button.BackgroundColor3 = Color3.fromRGB(170,0,0)
     end
 end)
+
