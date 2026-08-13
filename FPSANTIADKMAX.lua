@@ -3,9 +3,14 @@ local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
 local Lighting = game:GetService("Lighting")
 
--- 1. Membuat ScreenGui
+-- ==========================================
+-- 1. PEMBUATAN GUI
+-- ==========================================
 local MyGui = Instance.new("ScreenGui")
 MyGui.Name = "UtilityGuiMAX"
+MyGui.ResetOnSpawn = false
+
+-- Fallback jika CoreGui tidak bisa diakses
 local success = pcall(function()
     MyGui.Parent = CoreGui
 end)
@@ -13,7 +18,7 @@ if not success then
     MyGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 end
 
--- 2. Tombol Toggle (Hide/Show Menu)
+-- Tombol Toggle (Hide/Show Menu)
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(0, 60, 0, 40)
 ToggleBtn.Position = UDim2.new(0, 10, 0, 10)
@@ -25,27 +30,27 @@ ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleBtn.BorderSizePixel = 2
 ToggleBtn.Parent = MyGui
 
--- 3. Frame Utama
+-- Frame Utama
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 220, 0, 170)
 MainFrame.Position = UDim2.new(0.5, -110, 0.5, -85)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.Visible = false
 MainFrame.Active = true
-MainFrame.Draggable = true
+MainFrame.Draggable = true -- Bisa digeser
 MainFrame.BorderSizePixel = 2
 MainFrame.Parent = MyGui
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "Utility Hub (MAX)"
+Title.Text = "Utility Hub (SUPER MAX)"
 Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 20
+Title.TextSize = 18
 Title.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Parent = MainFrame
 
--- 4. Tombol Anti-AFK
+-- Tombol Anti-AFK
 local AfkBtn = Instance.new("TextButton")
 AfkBtn.Size = UDim2.new(0, 180, 0, 40)
 AfkBtn.Position = UDim2.new(0, 20, 0, 50)
@@ -56,7 +61,7 @@ AfkBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
 AfkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 AfkBtn.Parent = MainFrame
 
--- 5. Tombol FPS Boost MAX
+-- Tombol FPS Boost MAX
 local BoostBtn = Instance.new("TextButton")
 BoostBtn.Size = UDim2.new(0, 180, 0, 40)
 BoostBtn.Position = UDim2.new(0, 20, 0, 105)
@@ -68,7 +73,7 @@ BoostBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 BoostBtn.Parent = MainFrame
 
 -- ==========================================
--- LOGIC SCRIPT
+-- 2. LOGIC SCRIPT
 -- ==========================================
 
 -- Toggle Hide/Show
@@ -76,7 +81,7 @@ ToggleBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- Anti-AFK
+-- Anti-AFK Logic
 local antiAfkEnabled = false
 AfkBtn.MouseButton1Click:Connect(function()
     antiAfkEnabled = not antiAfkEnabled
@@ -97,7 +102,7 @@ Players.LocalPlayer.Idled:Connect(function()
     end
 end)
 
--- Reduce Map MAX Extreme
+-- Reduce Map SUPER MAX Extreme
 local mapReduced = false
 BoostBtn.MouseButton1Click:Connect(function()
     if mapReduced then return end
@@ -106,60 +111,86 @@ BoostBtn.MouseButton1Click:Connect(function()
     BoostBtn.Text = "Map Reduced! (MAX)"
     BoostBtn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
     
-    -- 1. Paksa Grafik ke Level 1 dari sistem Engine
+    -- 1. Paksa Engine Grafik ke Level Terendah
     pcall(function()
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
         settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
     end)
     
-    -- 2. Hancurkan semua efek visual Lighting & Langit
+    -- 2. Hancurkan Lighting, Efek Cuaca, dan Kabut
     Lighting.GlobalShadows = false
     Lighting.FogEnd = 9e9
     for _, v in pairs(Lighting:GetDescendants()) do
         if v:IsA("PostEffect") or v:IsA("Sky") or v:IsA("Atmosphere") or v:IsA("Clouds") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then
-            v:Destroy()
+            pcall(function() v:Destroy() end)
         end
     end
     
-    -- 3. Hapus Rumput & Efek Air dari Terrain
+    -- 3. Hapus Rumput & Efek Air Asli
     local Terrain = workspace:FindFirstChildOfClass('Terrain')
     if Terrain then
-        Terrain.WaterWaveSize = 0
-        Terrain.WaterWaveSpeed = 0
-        Terrain.WaterReflectance = 0
-        Terrain.WaterTransparency = 1
-        Terrain.Decoration = false -- Menghilangkan rumput 3D
+        pcall(function()
+            Terrain.WaterWaveSize = 0
+            Terrain.WaterWaveSpeed = 0
+            Terrain.WaterReflectance = 0
+            Terrain.WaterTransparency = 1
+            Terrain.Decoration = false -- Hilangkan rumput
+        end)
     end
     
-    -- 4. Fungsi Utama Penghancur Lag
+    -- 4. FUNGSI UTAMA (Penghancur Objek Lag & Air Terjun)
     local function optimizePart(v)
-        -- Ubah Part biasa
+        -- Daftar efek visual dan air terjun (Beam dll) untuk dihapus
+        local toDestroy = {
+            "ParticleEmitter", "Trail", "Smoke", "Fire", "Sparkles", 
+            "Decal", "Texture", "Beam", "PointLight", "SpotLight", 
+            "SurfaceGui", "BillboardGui"
+        }
+        
+        for _, className in pairs(toDestroy) do
+            if v:IsA(className) then
+                pcall(function() v:Destroy() end)
+            end
+        end
+
+        -- Hapus objek secara paksa jika namanya mengandung kata "water" atau "fall" (Biasanya untuk efek air buatan)
         if v:IsA("BasePart") then
-            v.Material = Enum.Material.SmoothPlastic
-            v.Reflectance = 0
-            v.CastShadow = false
+            local name = string.lower(v.Name)
+            if string.find(name, "water") or string.find(name, "fall") then
+                pcall(function() v:Destroy() end)
+                return -- Berhenti memproses part ini karena sudah hancur
+            end
+            
+            -- Buat rata/kentang
+            pcall(function()
+                v.Material = Enum.Material.SmoothPlastic
+                v.Reflectance = 0
+                v.CastShadow = false
+            end)
         end
-        -- Hapus tekstur dari model 3D (Mesh)
+        
+        -- Hapus tekstur pada MeshPart (MeshId di MeshPart tidak bisa diubah via script, jadi kita hapus teksturnya saja)
         if v:IsA("MeshPart") then
-            v.TextureID = ""
+            pcall(function() v.TextureID = "" end)
         end
+        
+        -- Hapus bentuk 3D rumit pada SpecialMesh
         if v:IsA("SpecialMesh") then
-            v.TextureId = ""
-        end
-        -- Hapus total dari memori (bukan sekadar diubah transparansinya)
-        if v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
-            v:Destroy()
+            pcall(function()
+                v.TextureId = ""
+                v.MeshId = ""
+            end)
         end
     end
     
-    -- 5. Terapkan ke semua yang ada di map saat ini
+    -- 5. Eksekusi ke seluruh part yang sudah ada di map
     for _, v in pairs(workspace:GetDescendants()) do
         optimizePart(v)
     end
     
-    -- 6. Terapkan ke map yang baru muncul (Auto-optimize untuk game berat / besar)
+    -- 6. Eksekusi otomatis jika ada map/air terjun baru yang muncul saat kamu berjalan
     workspace.DescendantAdded:Connect(function(v)
-        task.wait() -- Tunggu sepersekian detik agar game mendata objeknya dulu
+        task.wait() -- Tunggu sebentar agar game meregistrasi objek
         optimizePart(v)
     end)
 end)
