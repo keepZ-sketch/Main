@@ -8,7 +8,7 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AutoLifeMachineGUI"
 ScreenGui.Parent = CoreGui 
 
--- 2. Membuat Frame Utama (Bisa didrag)
+-- 2. Membuat Frame Utama
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 200, 0, 100)
 MainFrame.Position = UDim2.new(0.5, -100, 0.5, -50)
@@ -32,7 +32,7 @@ Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.Parent = MainFrame
 
--- 4. Membuat Tombol Toggle (ON/OFF)
+-- 4. Membuat Tombol Toggle
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Size = UDim2.new(0, 160, 0, 40)
 ToggleButton.Position = UDim2.new(0.5, -80, 0, 40)
@@ -65,50 +65,62 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Fungsi untuk mendapatkan lokasi asli prompt yang akurat
+local function getPromptLocation(prompt)
+    local parent = prompt.Parent
+    if not parent then return nil end
+    
+    if parent:IsA("Attachment") then
+        return parent.WorldCFrame -- Posisi pasti di dunia jika itu attachment
+    elseif parent:IsA("BasePart") then
+        return parent.CFrame
+    elseif parent:IsA("Model") then
+        return parent:GetPivot() -- Mengambil titik pusat model
+    end
+    return nil
+end
+
 -- Loop pengecekan
 task.spawn(function()
     while task.wait(1) do 
         if autoFarming then
             if os.time() - lastFiredTime >= delayTime then
                 
-                -- Mencari objek
                 for _, object in ipairs(Workspace:GetDescendants()) do
                     if object:IsA("ProximityPrompt") then
                         if object.ObjectText == "Life Machine" or object.ActionText == "Use" then
                             
                             local character = LocalPlayer.Character
                             local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                            local promptParent = object.Parent -- Objek (Part) tempat prompt berada
+                            local targetLocation = getPromptLocation(object)
                             
-                            if hrp and promptParent then
+                            if hrp and targetLocation then
                                 -- 1. Simpan posisi asli pemain
                                 local originalCFrame = hrp.CFrame
                                 
-                                -- 2. Teleport ke dekat Life Machine
-                                hrp.CFrame = promptParent.CFrame
+                                -- 2. Teleport ke target (Ditambah jarak Y (atas) +3 agar tidak nyangkut di dalam mesin)
+                                hrp.CFrame = targetLocation + Vector3.new(0, 3, 0)
                                 
-                                -- Beri jeda sedikit agar server meregistrasi perpindahan posisi karakter
-                                task.wait(0.2) 
+                                -- Beri jeda agar server mencatat Anda sudah di depan mesin
+                                task.wait(0.3) 
                                 
                                 -- 3. Tekan prompt
                                 if fireproximityprompt then
                                     fireproximityprompt(object, 1, true)
                                 end
                                 
-                                -- Beri jeda sedikit sebelum kembali agar animasi/hadiah sempat masuk
-                                task.wait(0.3)
+                                -- Beri jeda sebelum kembali agar proses interaksi server selesai
+                                task.wait(0.5)
                                 
                                 -- 4. Teleport kembali ke posisi semula
                                 hrp.CFrame = originalCFrame
                                 
-                                -- Selesai eksekusi, hentikan pencarian untuk mesin lainnya (agar tidak spam)
-                                break
+                                break -- Selesai eksekusi satu mesin, hentikan loop
                             end
                         end
                     end
                 end
                 
-                -- Catat waktu setelah mencoba eksekusi
                 lastFiredTime = os.time()
             end
         end
