@@ -1,5 +1,7 @@
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
 -- 1. Membuat ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
@@ -48,7 +50,7 @@ ButtonCorner.Parent = ToggleButton
 -- 5. Logika Script
 local autoFarming = false
 local lastFiredTime = 0
-local delayTime = 60 -- Delay dalam detik (60 detik = 1 menit)
+local delayTime = 60 -- Jeda 1 menit
 
 ToggleButton.MouseButton1Click:Connect(function()
     autoFarming = not autoFarming
@@ -56,7 +58,7 @@ ToggleButton.MouseButton1Click:Connect(function()
     if autoFarming then
         ToggleButton.Text = "AUTO: ON"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50) 
-        lastFiredTime = 0 -- Reset waktu agar langsung berinteraksi saat dinyalakan
+        lastFiredTime = 0 
     else
         ToggleButton.Text = "AUTO: OFF"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50) 
@@ -65,23 +67,48 @@ end)
 
 -- Loop pengecekan
 task.spawn(function()
-    while task.wait(1) do -- Loop berjalan setiap 1 detik agar UI tetap responsif
+    while task.wait(1) do 
         if autoFarming then
-            -- Cek apakah waktu saat ini dikurangi waktu terakhir klik sudah mencapai 60 detik
             if os.time() - lastFiredTime >= delayTime then
                 
-                -- Mencari dan menekan prompt
+                -- Mencari objek
                 for _, object in ipairs(Workspace:GetDescendants()) do
                     if object:IsA("ProximityPrompt") then
                         if object.ObjectText == "Life Machine" or object.ActionText == "Use" then
-                            if fireproximityprompt then
-                                fireproximityprompt(object, 1, true)
+                            
+                            local character = LocalPlayer.Character
+                            local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                            local promptParent = object.Parent -- Objek (Part) tempat prompt berada
+                            
+                            if hrp and promptParent then
+                                -- 1. Simpan posisi asli pemain
+                                local originalCFrame = hrp.CFrame
+                                
+                                -- 2. Teleport ke dekat Life Machine
+                                hrp.CFrame = promptParent.CFrame
+                                
+                                -- Beri jeda sedikit agar server meregistrasi perpindahan posisi karakter
+                                task.wait(0.2) 
+                                
+                                -- 3. Tekan prompt
+                                if fireproximityprompt then
+                                    fireproximityprompt(object, 1, true)
+                                end
+                                
+                                -- Beri jeda sedikit sebelum kembali agar animasi/hadiah sempat masuk
+                                task.wait(0.3)
+                                
+                                -- 4. Teleport kembali ke posisi semula
+                                hrp.CFrame = originalCFrame
+                                
+                                -- Selesai eksekusi, hentikan pencarian untuk mesin lainnya (agar tidak spam)
+                                break
                             end
                         end
                     end
                 end
                 
-                -- Catat waktu setelah berhasil menekan
+                -- Catat waktu setelah mencoba eksekusi
                 lastFiredTime = os.time()
             end
         end
