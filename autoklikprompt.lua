@@ -65,17 +65,17 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Fungsi untuk mendapatkan lokasi asli prompt yang akurat
+-- Fungsi untuk mendapatkan lokasi asli prompt
 local function getPromptLocation(prompt)
     local parent = prompt.Parent
     if not parent then return nil end
     
     if parent:IsA("Attachment") then
-        return parent.WorldCFrame -- Posisi pasti di dunia jika itu attachment
+        return parent.WorldCFrame 
     elseif parent:IsA("BasePart") then
         return parent.CFrame
     elseif parent:IsA("Model") then
-        return parent:GetPivot() -- Mengambil titik pusat model
+        return parent:GetPivot()
     end
     return nil
 end
@@ -88,34 +88,30 @@ task.spawn(function()
                 
                 for _, object in ipairs(Workspace:GetDescendants()) do
                     if object:IsA("ProximityPrompt") then
-                        if object.ObjectText == "Life Machine" or object.ActionText == "Use" then
+                        -- PERBAIKAN FINAL: Wajib "Life Machine" DAN "Use" persis seperti di foto
+                        if object.ObjectText == "Life Machine" and object.ActionText == "Use" then
                             
                             local character = LocalPlayer.Character
                             local hrp = character and character:FindFirstChild("HumanoidRootPart")
                             local targetLocation = getPromptLocation(object)
                             
                             if hrp and targetLocation then
-                                -- 1. Simpan posisi asli pemain
                                 local originalCFrame = hrp.CFrame
                                 
-                                -- 2. Teleport ke target (Ditambah jarak Y (atas) +3 agar tidak nyangkut di dalam mesin)
+                                -- Teleport 3 stud di atas mesin agar tidak tersangkut
                                 hrp.CFrame = targetLocation + Vector3.new(0, 3, 0)
                                 
-                                -- Beri jeda agar server mencatat Anda sudah di depan mesin
                                 task.wait(0.3) 
                                 
-                                -- 3. Tekan prompt
                                 if fireproximityprompt then
                                     fireproximityprompt(object, 1, true)
                                 end
                                 
-                                -- Beri jeda sebelum kembali agar proses interaksi server selesai
                                 task.wait(0.5)
                                 
-                                -- 4. Teleport kembali ke posisi semula
                                 hrp.CFrame = originalCFrame
                                 
-                                break -- Selesai eksekusi satu mesin, hentikan loop
+                                break -- Berhenti mencari setelah berhasil menekan 1 mesin
                             end
                         end
                     end
