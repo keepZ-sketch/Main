@@ -50,7 +50,7 @@ ButtonCorner.Parent = ToggleButton
 -- 5. Logika Script
 local autoFarming = false
 local lastFiredTime = 0
-local delayTime = 60 -- Jeda 1 menit
+local delayTime = 60 -- Jeda 1 menit untuk siklus pencarian
 
 ToggleButton.MouseButton1Click:Connect(function()
     autoFarming = not autoFarming
@@ -88,7 +88,7 @@ task.spawn(function()
                 
                 for _, object in ipairs(Workspace:GetDescendants()) do
                     if object:IsA("ProximityPrompt") then
-                        -- PERBAIKAN FINAL: Wajib "Life Machine" DAN "Use" persis seperti di foto
+                        -- Memastikan hanya Life Machine yang dieksekusi
                         if object.ObjectText == "Life Machine" and object.ActionText == "Use" then
                             
                             local character = LocalPlayer.Character
@@ -96,27 +96,38 @@ task.spawn(function()
                             local targetLocation = getPromptLocation(object)
                             
                             if hrp and targetLocation then
+                                -- 1. Simpan posisi asli pemain
                                 local originalCFrame = hrp.CFrame
                                 
-                                -- Teleport 3 stud di atas mesin agar tidak tersangkut
+                                -- 2. Teleport ke mesin
                                 hrp.CFrame = targetLocation + Vector3.new(0, 3, 0)
                                 
-                                task.wait(0.3) 
+                                -- Jeda agar server memuat posisi baru
+                                task.wait(0.5) 
                                 
-                                if fireproximityprompt then
-                                    fireproximityprompt(object, 1, true)
+                                -- 3. Tekan prompt 10x dengan jeda 1 detik
+                                for i = 1, 10 do
+                                    if not autoFarming then break end -- Berhenti jika tombol dimatikan di tengah jalan
+                                    
+                                    if fireproximityprompt then
+                                        fireproximityprompt(object, 1, true)
+                                    end
+                                    task.wait(1) -- Jeda 1 detik setiap kali menekan
                                 end
                                 
+                                -- Jeda sebentar sebelum kembali
                                 task.wait(0.5)
                                 
+                                -- 4. Teleport kembali ke posisi semula
                                 hrp.CFrame = originalCFrame
                                 
-                                break -- Berhenti mencari setelah berhasil menekan 1 mesin
+                                break -- Selesai mengeksekusi mesin ini
                             end
                         end
                     end
                 end
                 
+                -- Catat waktu siklus selesai
                 lastFiredTime = os.time()
             end
         end
