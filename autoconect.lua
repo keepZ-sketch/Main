@@ -4,13 +4,12 @@ local Players = game:GetService("Players")
 
 local autoReconnectEnabled = true
 
--- Mencegah duplikasi UI
 if CoreGui:FindFirstChild("AutoReconnectUI") then
     CoreGui.AutoReconnectUI:Destroy()
 end
 
 -- ==========================================
--- MEMBUAT TAMPILAN UI (TOGGLE BUTTON)
+-- MEMBUAT TAMPILAN UI
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AutoReconnectUI"
@@ -33,7 +32,6 @@ UICorner.Parent = ToggleButton
 
 ToggleButton.MouseButton1Click:Connect(function()
     autoReconnectEnabled = not autoReconnectEnabled
-    
     if autoReconnectEnabled then
         ToggleButton.Text = "Auto Reconnect: ON"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
@@ -44,30 +42,36 @@ ToggleButton.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- LOGIKA AUTO RECONNECT (Support Error 279)
+-- LOGIKA AUTO RECONNECT DENGAN RETRY LOOP
 -- ==========================================
 CoreGui.RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
     if child.Name == "ErrorPrompt" and autoReconnectEnabled then
-        -- Mengubah tombol untuk memberi tahu bahwa error terdeteksi
+        print("Disconnect terdeteksi! Memulai sistem auto-retry...")
+        
         ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0) -- Orange
-        ToggleButton.Text = "Error 279/277 Detected!"
+        ToggleButton.Text = "Menunggu Internet..."
         
-        print("Mendeteksi Error (seperti Code 279/277). Menunggu 5 detik untuk Reconnect...")
-        
-        task.wait(2)
-        ToggleButton.Text = "Reconnecting..."
-        
-        task.wait(3) -- Sisa waktu tunggu (Total 5 detik)
-        
-        -- Proses Reconnect
-        if #Players:GetPlayers() <= 1 then
-            Players.LocalPlayer:Kick("\nRejoining Server...")
-            task.wait()
-            TeleportService:Teleport(game.PlaceId, Players.LocalPlayer)
-        else
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Players.LocalPlayer)
-        end
+        -- Menggunakan task.spawn agar loop tidak menghentikan proses lain
+        task.spawn(function()
+            local attempts = 0
+            while autoReconnectEnabled do
+                attempts = attempts + 1
+                ToggleButton.Text = "Mencoba ke-" .. attempts
+                
+                -- Jeda 10 detik setiap kali mencoba agar internet punya waktu untuk stabil
+                task.wait(10) 
+                
+                -- Coba Teleport
+                pcall(function()
+                    if #Players:GetPlayers() <= 1 then
+                        TeleportService:Teleport(game.PlaceId, Players.LocalPlayer)
+                    else
+                        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Players.LocalPlayer)
+                    end
+                end)
+            end
+        end)
     end
 end)
 
-print("Auto-Reconnect (Support Error 279) Aktif!")
+print("Auto-Reconnect dengan Sistem Retry Aktif!")
