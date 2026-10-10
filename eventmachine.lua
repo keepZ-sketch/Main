@@ -10,7 +10,7 @@ ScreenGui.Parent = CoreGui
 
 -- 2. Membuat Frame Utama
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 200, 0, 140) -- Ukuran ditinggikan untuk menampung 2 tombol
+MainFrame.Size = UDim2.new(0, 200, 0, 140) 
 MainFrame.Position = UDim2.new(0.5, -100, 0.5, -70)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.BorderSizePixel = 0
@@ -26,18 +26,18 @@ FrameCorner.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.Text = "Teleport Pellet"
+Title.Text = "Teleport Pellet & Feed"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.Parent = MainFrame
 
--- 4. Membuat Tombol Teleport ke Mesin
+-- 4. Tombol Teleport & Auto Feed
 local TpButton = Instance.new("TextButton")
 TpButton.Size = UDim2.new(0, 160, 0, 40)
 TpButton.Position = UDim2.new(0.5, -80, 0, 35)
-TpButton.BackgroundColor3 = Color3.fromRGB(50, 150, 200) -- Warna Biru
-TpButton.Text = "TP ke Pellet Machine"
+TpButton.BackgroundColor3 = Color3.fromRGB(50, 150, 200) 
+TpButton.Text = "TP & Auto Feed"
 TpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 TpButton.Font = Enum.Font.GothamBold
 TpButton.TextSize = 12
@@ -47,11 +47,11 @@ local TpButtonCorner = Instance.new("UICorner")
 TpButtonCorner.CornerRadius = UDim.new(0, 6)
 TpButtonCorner.Parent = TpButton
 
--- 5. Membuat Tombol Kembali ke Posisi Awal
+-- 5. Tombol Kembali
 local ReturnButton = Instance.new("TextButton")
 ReturnButton.Size = UDim2.new(0, 160, 0, 40)
 ReturnButton.Position = UDim2.new(0.5, -80, 0, 85)
-ReturnButton.BackgroundColor3 = Color3.fromRGB(200, 150, 50) -- Warna Oranye
+ReturnButton.BackgroundColor3 = Color3.fromRGB(200, 150, 50) 
 ReturnButton.Text = "Kembali ke Posisi Awal"
 ReturnButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ReturnButton.Font = Enum.Font.GothamBold
@@ -62,14 +62,11 @@ local ReturnButtonCorner = Instance.new("UICorner")
 ReturnButtonCorner.CornerRadius = UDim.new(0, 6)
 ReturnButtonCorner.Parent = ReturnButton
 
--- Variabel untuk menyimpan posisi sebelum teleport
 local savedLocation = nil
 
--- Fungsi untuk mendapatkan lokasi asli prompt
 local function getPromptLocation(prompt)
     local parent = prompt.Parent
     if not parent then return nil end
-    
     if parent:IsA("Attachment") then
         return parent.WorldCFrame 
     elseif parent:IsA("BasePart") then
@@ -80,35 +77,76 @@ local function getPromptLocation(prompt)
     return nil
 end
 
--- Logika Tombol Teleport ke Mesin
+-- Fungsi untuk mencari dan menekan tombol GUI "FEED MACHINE"
+local function autoClickFeedMachine()
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return end
+
+    -- Mencari semua elemen di UI pemain
+    for _, obj in pairs(playerGui:GetDescendants()) do
+        -- Cek apakah teksnya mengandung FEED MACHINE
+        local textStr = ""
+        if obj:IsA("TextLabel") or obj:IsA("TextButton") then
+            textStr = string.upper(obj.Text)
+        end
+
+        if string.find(textStr, "FEED MACHINE") then
+            -- Jika teks ada di TextLabel, tombolnya biasanya adalah Parent (ImageButton/TextButton)
+            local targetButton = obj
+            if obj:IsA("TextLabel") and obj.Parent and (obj.Parent:IsA("ImageButton") or obj.Parent:IsA("TextButton")) then
+                targetButton = obj.Parent
+            end
+
+            -- Menggunakan fungsi eksploit untuk memicu klik
+            if getconnections then
+                for _, connection in pairs(getconnections(targetButton.MouseButton1Click)) do
+                    connection:Fire()
+                end
+                for _, connection in pairs(getconnections(targetButton.Activated)) do
+                    connection:Fire()
+                end
+            end
+        end
+    end
+end
+
+-- Logika Teleport & Feed
 TpButton.MouseButton1Click:Connect(function()
     local character = LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
-    
     if not hrp then return end
-
-    local foundMachine = false
 
     for _, object in ipairs(Workspace:GetDescendants()) do
         if object:IsA("ProximityPrompt") then
-            -- Memastikan yang dicari adalah Pellet Machine
-            if object.ObjectText == "Pellet Machine" and object.ActionText == "Use" then
+            -- Pengecekan teks khusus untuk Pellet Machine
+            if string.find(string.upper(object.ObjectText), "PELLET MACHINE") then
                 local targetLocation = getPromptLocation(object)
                 
                 if targetLocation then
-                    -- 1. Simpan posisi pemain saat ini sebelum pindah
                     savedLocation = hrp.CFrame
-                    
-                    -- 2. Teleport ke mesin (ditambah jarak Y agar tidak tersangkut)
                     hrp.CFrame = targetLocation + Vector3.new(0, 3, 0)
-                    foundMachine = true
                     
-                    -- Efek visual sukses
-                    local originalText = TpButton.Text
-                    TpButton.Text = "Berhasil TP!"
-                    TpButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50) -- Hijau
+                    TpButton.Text = "Proses Feed..."
+                    TpButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50) 
+                    
+                    task.wait(0.5) -- Tunggu server memuat posisi
+                    
+                    -- 1. Buka Menu Mesin (Tekan Use)
+                    if fireproximityprompt then
+                        fireproximityprompt(object, 1, true)
+                    end
+                    
+                    task.wait(1) -- Tunggu menu UI muncul di layar
+                    
+                    -- 2. Tekan tombol FEED MACHINE di GUI sebanyak 5 kali (bisa disesuaikan)
+                    for i = 1, 5 do
+                        autoClickFeedMachine()
+                        task.wait(0.5) -- Jeda antar klik
+                    end
+                    
+                    TpButton.Text = "Selesai!"
                     task.wait(1)
-                    TpButton.Text = originalText
+                    TpButton.Text = "TP & Auto Feed"
                     TpButton.BackgroundColor3 = Color3.fromRGB(50, 150, 200)
                     
                     break
@@ -116,43 +154,19 @@ TpButton.MouseButton1Click:Connect(function()
             end
         end
     end
-    
-    if not foundMachine then
-        -- Jika mesin belum dimuat di map
-        local originalText = TpButton.Text
-        TpButton.Text = "Mesin tidak ditemukan!"
-        TpButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Merah
-        task.wait(1)
-        TpButton.Text = originalText
-        TpButton.BackgroundColor3 = Color3.fromRGB(50, 150, 200)
-    end
 end)
 
--- Logika Tombol Kembali
 ReturnButton.MouseButton1Click:Connect(function()
     if savedLocation then
         local character = LocalPlayer.Character
         local hrp = character and character:FindFirstChild("HumanoidRootPart")
-        
         if hrp then
-            -- Teleport kembali ke lokasi yang disimpan
             hrp.CFrame = savedLocation
-            
-            -- Efek visual sukses
-            local originalText = ReturnButton.Text
             ReturnButton.Text = "Berhasil Kembali!"
-            ReturnButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50) -- Hijau
+            ReturnButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50) 
             task.wait(1)
-            ReturnButton.Text = originalText
+            ReturnButton.Text = "Kembali ke Posisi Awal"
             ReturnButton.BackgroundColor3 = Color3.fromRGB(200, 150, 50)
         end
-    else
-        -- Jika pemain memencet "Kembali" tapi belum pernah teleport sebelumnya
-        local originalText = ReturnButton.Text
-        ReturnButton.Text = "Belum ada posisi!"
-        ReturnButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Merah
-        task.wait(1)
-        ReturnButton.Text = originalText
-        ReturnButton.BackgroundColor3 = Color3.fromRGB(200, 150, 50)
     end
 end)
