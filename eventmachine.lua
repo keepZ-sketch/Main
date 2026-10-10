@@ -77,33 +77,27 @@ local function getPromptLocation(prompt)
     return nil
 end
 
--- Fungsi untuk mencari dan menekan tombol GUI "FEED MACHINE"
+-- Fungsi yang lebih agresif untuk mencari dan menekan tombol GUI "FEED MACHINE"
 local function autoClickFeedMachine()
     local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
     if not playerGui then return end
 
-    -- Mencari semua elemen di UI pemain
     for _, obj in pairs(playerGui:GetDescendants()) do
-        -- Cek apakah teksnya mengandung FEED MACHINE
-        local textStr = ""
         if obj:IsA("TextLabel") or obj:IsA("TextButton") then
-            textStr = string.upper(obj.Text)
-        end
-
-        if string.find(textStr, "FEED MACHINE") then
-            -- Jika teks ada di TextLabel, tombolnya biasanya adalah Parent (ImageButton/TextButton)
-            local targetButton = obj
-            if obj:IsA("TextLabel") and obj.Parent and (obj.Parent:IsA("ImageButton") or obj.Parent:IsA("TextButton")) then
-                targetButton = obj.Parent
-            end
-
-            -- Menggunakan fungsi eksploit untuk memicu klik
-            if getconnections then
-                for _, connection in pairs(getconnections(targetButton.MouseButton1Click)) do
-                    connection:Fire()
+            if string.find(string.upper(obj.Text), "FEED MACHINE") then
+                
+                -- Targetkan objek ini atau induknya jika induknya adalah tombol
+                local target = obj
+                if obj:IsA("TextLabel") and obj.Parent and (obj.Parent:IsA("ImageButton") or obj.Parent:IsA("TextButton")) then
+                    target = obj.Parent
                 end
-                for _, connection in pairs(getconnections(targetButton.Activated)) do
-                    connection:Fire()
+
+                -- Eksekusi semua kemungkinan event klik
+                if getconnections then
+                    for _, conn in pairs(getconnections(target.MouseButton1Click)) do conn:Fire() end
+                    for _, conn in pairs(getconnections(target.MouseButton1Down)) do conn:Fire() end
+                    for _, conn in pairs(getconnections(target.MouseButton1Up)) do conn:Fire() end
+                    for _, conn in pairs(getconnections(target.Activated)) do conn:Fire() end
                 end
             end
         end
@@ -118,30 +112,31 @@ TpButton.MouseButton1Click:Connect(function()
 
     for _, object in ipairs(Workspace:GetDescendants()) do
         if object:IsA("ProximityPrompt") then
-            -- Pengecekan teks khusus untuk Pellet Machine
             if string.find(string.upper(object.ObjectText), "PELLET MACHINE") then
                 local targetLocation = getPromptLocation(object)
                 
                 if targetLocation then
                     savedLocation = hrp.CFrame
-                    hrp.CFrame = targetLocation + Vector3.new(0, 3, 0)
+                    
+                    -- PERBAIKAN: Teleport ke samping mesin (geser 2 stud), bukan di atasnya, agar Prompt mendeteksi pemain.
+                    hrp.CFrame = targetLocation * CFrame.new(2, 0, 0)
                     
                     TpButton.Text = "Proses Feed..."
                     TpButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50) 
                     
-                    task.wait(0.5) -- Tunggu server memuat posisi
+                    task.wait(0.5) 
                     
-                    -- 1. Buka Menu Mesin (Tekan Use)
+                    -- 1. Buka Menu Mesin
                     if fireproximityprompt then
                         fireproximityprompt(object, 1, true)
                     end
                     
-                    task.wait(1) -- Tunggu menu UI muncul di layar
+                    task.wait(1.5) -- Waktu tunggu diperpanjang agar animasi menu terbuka sepenuhnya
                     
-                    -- 2. Tekan tombol FEED MACHINE di GUI sebanyak 5 kali (bisa disesuaikan)
+                    -- 2. Tekan tombol FEED MACHINE berulang kali
                     for i = 1, 5 do
                         autoClickFeedMachine()
-                        task.wait(0.5) -- Jeda antar klik
+                        task.wait(0.5) 
                     end
                     
                     TpButton.Text = "Selesai!"
