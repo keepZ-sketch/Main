@@ -38,24 +38,30 @@ local function FarmPumpkins()
                 if not _G.AutoPumpkin then break end
                 
                 if obj.Name == "Pumpkin" then
-                    -- Teleportasi ke Pumpkin
+                    -- 1. Teleportasi ke Pumpkin
                     if obj:IsA("BasePart") then
                         hrp.CFrame = obj.CFrame
                     elseif obj:IsA("Model") and obj.PrimaryPart then
                         hrp.CFrame = obj.PrimaryPart.CFrame
                     end
                     
-                    -- Jeda 5 detik setelah teleport
-                    task.wait(5) 
+                    -- Jeda 0.5 detik agar server mendaftarkan posisi karakter kita di dekat pumpkin
+                    task.wait(0.5) 
                     
-                    -- Mencari dan mengeksekusi ProximityPrompt (Bypass Hold Duration)
                     local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
                     if prompt then
-                        local originalDuration = prompt.HoldDuration
-                        prompt.HoldDuration = 0 -- Paksa waktu tahan jadi 0 detik
-                        fireproximityprompt(prompt)
-                        task.wait(0.1)
-                        prompt.HoldDuration = originalDuration -- Kembalikan normal
+                        -- 2. Mulai MENAHAN tombol interaksi secara virtual
+                        prompt:InputHoldBegin()
+                        
+                        -- 3. Diam dan tunggu selama waktu yang dibutuhkan untuk collect (misal: 5 detik + 0.5 detik cadangan)
+                        local holdTime = prompt.HoldDuration > 0 and prompt.HoldDuration or 5
+                        task.wait(holdTime + 0.5)
+                        
+                        -- 4. Lepaskan tombol interaksi
+                        prompt:InputHoldEnd()
+                        
+                        -- Jeda sebentar sebelum teleport ke pumpkin selanjutnya
+                        task.wait(0.5)
                     end
                 end
             end
