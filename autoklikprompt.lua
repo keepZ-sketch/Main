@@ -47,7 +47,8 @@ local function FarmPumpkins()
                         hrp.CFrame = obj.PrimaryPart.CFrame
                     end
                     
-                    task.wait(0.2)
+                    -- JEDA 5 DETIK SAAT TELEPORT
+                    task.wait(5) 
                     
                     -- Memicu interaksi jika menggunakan tombol (E)
                     local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
